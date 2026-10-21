@@ -1,0 +1,317 @@
+In modern Go (Go Modules era), you can create your projects anywhere you want in your user directory. 
+You do not need to place them inside $GOPATH (~/go/src), which was only required in older legacy Go (pre-Go 1.11).
+
+
+aditya@AB-LOQ:~$ go env GOROOT
+/usr/local/go
+aditya@AB-LOQ:~$ mkdir -p go_projects
+aditya@AB-LOQ:~$ cd go_projects/
+aditya@AB-LOQ:~/go_projects$ git clone git@github.com:abhokarikar/study-projects.git
+aditya@AB-LOQ:~/go_projects$ cd study-projects/
+aditya@AB-LOQ:~/go_projects/study-projects$ ls -ltrh
+total 4.0K
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:18 README.md
+aditya@AB-LOQ:~/go_projects/study-projects$ go mod init github.com/abhokarikar/study-projects
+go: creating new go.mod: module github.com/abhokarikar/study-projects
+aditya@AB-LOQ:~/go_projects/study-projects$ ls -ltrh
+total 8.0K
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:18 README.md
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:20 go.mod
+aditya@AB-LOQ:~/go_projects/study-projects$ pwd
+/home/aditya/go_projects/study-projects
+
+================================================================================
+
+          GIT SSH CLONE TROUBLESHOOTING SUMMARY & COMMAND LOG
+
+================================================================================
+
+
+
+1. INCIDENT OVERVIEW
+
+--------------------------------------------------------------------------------
+
+* Initial Error:
+
+    git@github.com: Permission denied (publickey).
+
+    fatal: Could not read from remote repository.
+
+    Please make sure you have the correct access rights and the repository exists.
+
+
+
+* Context:
+
+    - Attempted to clone a public repository owned by the user.
+
+    - System: Ubuntu on Linux (WSL / VS Code Terminal).
+
+
+
+* Root Cause:
+
+    The VS Code terminal was running under the 'root' user session rather than
+
+    the standard user session ('aditya'). SSH looks for keys and configuration
+
+    in the active user's home directory ($HOME/.ssh). 
+
+    - Keys configured in: /home/aditya/.ssh/
+
+    - Terminal checked:   /root/.ssh/ (no registered keys)
+
+
+
+* Final Resolution:
+
+    Switched execution context back from 'root' to the standard user 'aditya',
+
+    allowing Git and SSH to correctly load '/home/aditya/.ssh/id_rsa'.
+
+
+
+
+
+================================================================================
+
+2. TRIAL & ERROR CHRONOLOGY
+
+================================================================================
+
+
+
+--------------------------------------------------------------------------------
+
+STEP 1: Initial Git Clone Attempt
+
+--------------------------------------------------------------------------------
+
+Command Executed:
+
+    git clone git@github.com:<owner>/<repo>.git
+
+
+
+Expected Output:
+
+    Cloning into '<repo>'...
+
+    Receiving objects: 100% ... done.
+
+
+
+Actual Output:
+
+    This key is not known by any other names.
+
+    Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+
+    Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.
+
+    git@github.com: Permission denied (publickey).
+
+    fatal: Could not read from remote repository.
+
+
+
+Outcome / Interpretation:
+
+    SSH connection to GitHub was established, but public key authentication failed.
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+STEP 2: Inspecting Local SSH Directory
+
+--------------------------------------------------------------------------------
+
+Command Executed:
+
+    aditya@AB-LOQ:~/go_projects/study-projects$ ls -la ~/.ssh
+
+
+
+Expected Output:
+
+    Check whether an SSH key pair (id_rsa / id_ed25519) exists locally.
+
+
+
+Actual Output:
+
+    total 36
+
+    drwx------  2 aditya aditya  4096 Mar 28  2026 .
+
+    drwxr-x--- 21 aditya aditya 12288 Oct 21 16:20 ..
+
+    -rw-r--r--  1 aditya aditya   120 Mar 28  2026 config
+
+    -rw-------  1 aditya aditya  2602 Mar 28  2026 id_rsa
+
+    -rw-r--r--  1 aditya aditya   567 Mar 28  2026 id_rsa.pub
+
+    -rw-------  1 aditya aditya  1120 Mar 28  2026 known_hosts
+
+    -rw-r--r--  1 aditya aditya   142 Mar 28  2026 known_hosts.old
+
+
+
+Outcome / Interpretation:
+
+    Confirmed that an RSA key pair ('id_rsa' and 'id_rsa.pub') and a custom
+
+    'config' file existed inside user aditya's home directory.
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+STEP 3: Testing SSH Authentication with GitHub (Verbose)
+
+--------------------------------------------------------------------------------
+
+Command Executed:
+
+    aditya@AB-LOQ:~/go_projects/study-projects$ ssh -Tv git@github.com
+
+
+
+Expected Output:
+
+    Verbose diagnostics revealing key offerings, routing, and greeting line:
+
+    "Hi <username>! You've successfully authenticated..."
+
+
+
+Actual Output (Key Excerpts):
+
+    debug1: Reading configuration data /home/aditya/.ssh/config
+
+    debug1: /home/aditya/.ssh/config line 1: Applying options for github.com
+
+    debug1: Connecting to ssh.github.com [20.207.73.83] port 443.
+
+    debug1: Server accepts key: /home/aditya/.ssh/id_rsa RSA SHA256:VHQMeECzqrMuFth8PwXvcVCuA7qsOWxPRovCGP7N5b8 explicit agent
+
+    Authenticated to ssh.github.com ([20.207.73.83]:443) using "publickey".
+
+    ...
+
+    Hi abhokarikar! You've successfully authenticated, but GitHub does not provide shell access.
+
+    debug1: Exit status 1
+
+
+
+Outcome / Interpretation:
+
+    1. Port 443 override via ~/.ssh/config was active and working.
+
+    2. GitHub recognized key SHA256:VHQMeECzqrMuFth8PwXvcVCuA7qsOWxPRovCGP7N5b8.
+
+    3. User was authenticated successfully as GitHub account 'abhokarikar'.
+
+    4. Proved that user aditya's environment and keys were fully functional.
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+STEP 4: Identifying Repository & URL Scope
+
+--------------------------------------------------------------------------------
+
+Action Taken:
+
+    Verified repo access parameters (confirmed repo is public, checking why
+
+    a clone could still fail despite successful authentication).
+
+
+
+Outcome / Interpretation:
+
+    Public repositories do not require private authorization. The failure
+
+    indicated a disconnect between where 'ssh -Tv' was tested versus where
+
+    the initial clone was attempted.
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+STEP 5: Root Cause Discovery & Fix
+
+--------------------------------------------------------------------------------
+
+Discovery:
+
+    The terminal in VS Code that ran the original 'git clone' was running as
+
+    the 'root' superuser, while the successful tests were run as user 'aditya'.
+
+
+
+Cause Details:
+
+    - Root evaluates: /root/.ssh/
+
+    - Aditya evaluates: /home/aditya/.ssh/
+
+    Because /root/.ssh had no key registered on GitHub, all Git commands run
+
+    from that prompt returned "Permission denied (publickey)".
+
+
+
+Fix Applied:
+
+    Exit the root shell or ensure the VS Code terminal profile defaults to:
+
+        user: aditya
+
+
+
+
+
+================================================================================
+
+3. SUMMARY OF KEY LESSONS
+
+================================================================================
+
+1. SSH keys are strictly user-specific:
+
+   Running commands with 'sudo' or inside a root shell redirects SSH lookup
+
+   to '/root/.ssh/' instead of your normal home directory.
+
+
+
+2. Verification commands:
+
+   - Check current user:    whoami
+
+   - Test SSH to GitHub:    ssh -T git@github.com
+
+   - List loaded keys:      ssh-add -l
+
+   - Inspect active paths:  echo $HOME
+
+
+
+================================================================================
