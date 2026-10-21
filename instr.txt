@@ -1,0 +1,21 @@
+In modern Go (Go Modules era), you can create your projects anywhere you want in your user directory. 
+You do not need to place them inside $GOPATH (~/go/src), which was only required in older legacy Go (pre-Go 1.11).
+
+
+aditya@AB-LOQ:~$ go env GOROOT
+/usr/local/go
+aditya@AB-LOQ:~$ mkdir -p go_projects
+aditya@AB-LOQ:~$ cd go_projects/
+aditya@AB-LOQ:~/go_projects$ git clone git@github.com:abhokarikar/study-projects.git
+aditya@AB-LOQ:~/go_projects$ cd study-projects/
+aditya@AB-LOQ:~/go_projects/study-projects$ ls -ltrh
+total 4.0K
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:18 README.md
+aditya@AB-LOQ:~/go_projects/study-projects$ go mod init github.com/abhokarikar/study-projects
+go: creating new go.mod: module github.com/abhokarikar/study-projects
+aditya@AB-LOQ:~/go_projects/study-projects$ ls -ltrh
+total 8.0K
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:18 README.md
+-rw-rw-r-- 1 aditya aditya 56 Oct 21 16:20 go.mod
+aditya@AB-LOQ:~/go_projects/study-projects$ pwd
+/home/aditya/go_projects/study-projects
